@@ -52,7 +52,7 @@ function Select({label, value, onChange, children}) {
 }
 
 // ─── PASSWORD PROTECTION ──────────────────────────────────────────────────────
-const APP_PASSWORD = "Ganesh@1289";  // ← Change this to your password
+const APP_PASSWORD = "Ganesh@1289!";  // ← Change this to your password
 const AUTH_KEY = "bs_auth_v1";
 const isAuthed = () => { try { return localStorage.getItem(AUTH_KEY) === APP_PASSWORD; } catch { return false; } };
 
