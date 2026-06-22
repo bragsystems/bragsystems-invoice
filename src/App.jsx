@@ -238,12 +238,6 @@ function buildPrintHTML(p, bank, co, sig) {
 </body></html>`;
 }
 
-// ─── UNCONTROLLED TEXT INPUT (fixes typing lag) ────────────────────────────────
-    </div>
-  );
-}
-
-
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
 export default function App() {
   const [appTab, setAppTab] = useState("invoice");
