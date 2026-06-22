@@ -1,18 +1,54 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 // ─── SHARED STYLES (module level) ─────────────────────────────────────────────
 const inpSt = {width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"7px 10px",fontSize:"13px",fontWeight:"normal",color:"#1f2937",background:"#fff",outline:"none",boxSizing:"border-box",fontFamily:"Arial,sans-serif"};
 const lblSt = {display:"block",fontSize:"11px",fontWeight:500,color:"#6b7280",marginBottom:"4px"};
 
-// ─── INPUT COMPONENTS outside App to prevent remount on every keystroke ────────
-function Input({label,value,onChange,placeholder,type}){
-  return(<div><div style={lblSt}>{label}</div><input style={inpSt} type={type||"text"} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||""}/></div>);
+// ─── INPUT COMPONENTS ─────────────────────────────────────────────────────────
+// Uses local ref + local state so parent re-renders never steal focus.
+// Parent value is synced on mount and when it changes externally (loadClient etc)
+function Input({label, value, onChange, placeholder, type}) {
+  const [local, setLocal] = useState(value||"");
+  const prev = useRef(value);
+  // Only sync from parent when value changes externally (e.g. loadClient)
+  if (prev.current !== value) { prev.current = value; setLocal(value||""); }
+  return (
+    <div>
+      <div style={lblSt}>{label}</div>
+      <input
+        style={inpSt}
+        type={type||"text"}
+        value={local}
+        placeholder={placeholder||""}
+        onChange={e => { setLocal(e.target.value); onChange(e.target.value); }}
+      />
+    </div>
+  );
 }
-function Textarea({label,value,onChange,placeholder,rows}){
-  return(<div><div style={lblSt}>{label}</div><textarea style={{...inpSt,resize:"vertical"}} rows={rows||3} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||""}/></div>);
+function Textarea({label, value, onChange, placeholder, rows}) {
+  const [local, setLocal] = useState(value||"");
+  const prev = useRef(value);
+  if (prev.current !== value) { prev.current = value; setLocal(value||""); }
+  return (
+    <div>
+      <div style={lblSt}>{label}</div>
+      <textarea
+        style={{...inpSt, resize:"vertical"}}
+        rows={rows||3}
+        value={local}
+        placeholder={placeholder||""}
+        onChange={e => { setLocal(e.target.value); onChange(e.target.value); }}
+      />
+    </div>
+  );
 }
-function Select({label,value,onChange,children}){
-  return(<div><div style={lblSt}>{label}</div><select style={inpSt} value={value} onChange={e=>onChange(e.target.value)}>{children}</select></div>);
+function Select({label, value, onChange, children}) {
+  return (
+    <div>
+      <div style={lblSt}>{label}</div>
+      <select style={inpSt} value={value} onChange={e=>onChange(e.target.value)}>{children}</select>
+    </div>
+  );
 }
 
 const SUPA_URL = "https://asfdgwvgvgnngjqmimgi.supabase.co";
@@ -32,6 +68,13 @@ const supa = async (path, method="GET", body=null) => {
 const BANK_KEY = "bs_bank_v2";
 const DEFAULT_BANK = { bank:"Kotak Mahindra Bank, Gurgaon", accountName:"Brag Systems", accountNo:"1907202009", ifsc:"KKBK0000287", upi:"bragsystems@kotak" };
 const loadBank = () => { try { return JSON.parse(localStorage.getItem(BANK_KEY)||"null")||DEFAULT_BANK; } catch { return DEFAULT_BANK; } };
+
+const CO_KEY = "bs_company_v1";
+const DEFAULT_CO = { name:"BRAG SYSTEMS", tagline:"India's Grain Storage Execution Partner", address:"Eco Tower, Cyberwalk Tech Park, IMT Manesar, Gurugram — 122051, Haryana", gstin:"06CUEPS5377Q1ZN", pan:"CUEPS5377Q", phone:"7817805947", email:"bragsystems@gmail.com", website:"www.bragsystems.com" };
+const loadCo = () => { try { return JSON.parse(localStorage.getItem(CO_KEY)||"null")||DEFAULT_CO; } catch { return DEFAULT_CO; } };
+
+const SIG_KEY = "bs_signature_v1";
+const loadSig = () => { try { return localStorage.getItem(SIG_KEY)||""; } catch { return ""; } };
 
 const DOC_TYPES = ["Tax Invoice","Proforma Invoice","Quotation"];
 const UNITS = ["NOS","BOX","KG","MT","LTR","SET","JOB","RMT","SQM","LOT","PCS"];
@@ -59,8 +102,10 @@ const toWords = (num) => {
 };
 
 // ─── PRINT HTML ────────────────────────────────────────────────────────────────
-function buildPrintHTML(p, bank) {
+function buildPrintHTML(p, bank, co, sig) {
   const B = bank||DEFAULT_BANK;
+  const C = co||DEFAULT_CO;
+  const SIG = sig||"";
   const {docType,invoiceNo,invoiceDate,dueDate,poRef,vehicleNo,lrNo,modeOfTransport,incoterms,placeOfSupply,clientName,clientContact,clientAddress,clientGstin,clientPhone,clientEmail,items,taxType,taxRate,taxable,tax,grand,notes}=p;
   const n=(v)=>(parseFloat(v)||0).toLocaleString("en-IN",{minimumFractionDigits:2});
 
@@ -98,9 +143,9 @@ function buildPrintHTML(p, bank) {
 
 <table style="margin-bottom:6px"><tr>
 <td style="width:58%;vertical-align:top;padding-right:10px">
-  <div style="font-size:22px;font-weight:900;letter-spacing:2px;line-height:1;color:#111">BRAG SYSTEMS</div>
-  <div style="font-size:8.5px;color:#E59215;font-weight:bold;margin:3px 0 5px">India's Grain Storage Execution Partner</div>
-  <div style="font-size:8.5px;color:#555;line-height:1.7">Eco Tower, Cyberwalk Tech Park, IMT Manesar, Gurugram — 122051, Haryana<br/>GSTIN: <b>06CUEPS5377Q1ZN</b> | PAN: <b>CUEPS5377Q</b><br/>Ph: 7817805947 | bragsystems@gmail.com</div>
+  <div style="font-size:22px;font-weight:900;letter-spacing:2px;line-height:1;color:#111">${C.name}</div>
+  <div style="font-size:8.5px;color:#E59215;font-weight:bold;margin:3px 0 5px">${C.tagline}</div>
+  <div style="font-size:8.5px;color:#555;line-height:1.7">${C.address}<br/>GSTIN: <b>${C.gstin}</b> | PAN: <b>${C.pan}</b><br/>Ph: ${C.phone} | ${C.email}</div>
 </td>
 <td style="width:42%;vertical-align:top;text-align:right">
   <div style="font-size:19px;font-weight:bold;color:#E59215;letter-spacing:1px">${docType.toUpperCase()}</div>
@@ -178,14 +223,16 @@ function buildPrintHTML(p, bank) {
   <div style="font-size:9px;color:#444;line-height:1.8;font-weight:normal">${(notes||"").split("\n").join("<br/>")}</div>
 </td>
 <td style="width:40%;border:1px solid #aaa;border-left:none;padding:6px 8px;text-align:center;vertical-align:top">
-  <div style="font-size:8px;font-weight:bold;color:#E59215;margin-bottom:4px">For BRAG SYSTEMS</div>
-  <div style="height:48px"></div>
+  <div style="font-size:8px;font-weight:bold;color:#E59215;margin-bottom:4px">For ${C.name}</div>
+  <div style="height:60px;display:flex;align-items:center;justify-content:center">
+    ${SIG ? `<img src="${SIG}" style="max-height:55px;max-width:140px;object-fit:contain"/>` : `<div style="font-size:8px;color:#ccc;font-style:italic">(Signature)</div>`}
+  </div>
   <div style="border-top:1px solid #999;padding-top:4px;font-size:9px;color:#666">Authorised Signatory</div>
 </td>
 </tr></table>
 
 <div style="border-top:1px solid #E59215;padding-top:4px;text-align:center;font-size:7.5px;color:#aaa">
-  Computer generated document — no signature required | bragsystems@gmail.com | 7817805947 | www.bragsystems.com
+  ${C.email} | ${C.phone} | ${C.website}
 </div>
 <script>window.onload=function(){window.print();}</script>
 </body></html>`;
@@ -228,6 +275,10 @@ export default function App() {
   const [bank, setBank] = useState(loadBank());
   const [editBank, setEditBank] = useState(false);
   const [bankDraft, setBankDraft] = useState(loadBank());
+  const [co, setCo] = useState(loadCo());
+  const [editCo, setEditCo] = useState(false);
+  const [coDraft, setCoDraft] = useState(loadCo());
+  const [sig, setSig] = useState(loadSig());
 
   // DB
   const [clients, setClients] = useState([]);
@@ -308,9 +359,12 @@ export default function App() {
 
   const printInvoice = (inv) => {
     const d=inv.data; if(!d)return;
-    const win=window.open("","_blank","width=900,height=700");
+    const html=buildPrintHTML(d,bank,co,sig);
+    const blob=new Blob([html],{type:"text/html"});
+    const url=URL.createObjectURL(blob);
+    const win=window.open(url,"_blank");
     if(!win){alert("Allow popups");return;}
-    win.document.open(); win.document.write(buildPrintHTML(d,bank)); win.document.close(); win.focus();
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
   };
 
   const deleteInvoice = async (id,no,e) => {
@@ -319,12 +373,7 @@ export default function App() {
     try { await supa(`/invoices?id=eq.${id}`,"DELETE"); notify("Deleted"); fetchInvoices(); } catch{ notify("Error"); }
   };
 
-  const handlePrint = () => {
-    const props={docType,invoiceNo,invoiceDate,dueDate,poRef,vehicleNo,lrNo,modeOfTransport,incoterms,placeOfSupply,clientName,clientContact,clientAddress,clientGstin,clientPhone,clientEmail,items,taxType,taxRate,taxable,tax,grand,notes};
-    const win=window.open("","_blank","width=900,height=700");
-    if(!win){alert("Allow popups for this site");return;}
-    win.document.open(); win.document.write(buildPrintHTML(props,bank)); win.document.close(); win.focus();
-  };
+
 
   const updateItem = (id,field,value) => {
     setItems(prev=>prev.map(it=>{
@@ -346,6 +395,15 @@ export default function App() {
 
   const printProps = {docType,invoiceNo,invoiceDate,dueDate,poRef,vehicleNo,lrNo,modeOfTransport,incoterms,placeOfSupply,clientName,clientContact,clientAddress,clientGstin,clientPhone,clientEmail,items,taxType,taxRate,taxable,tax,grand,notes};
 
+  const handlePrintCurrent = () => {
+    const html=buildPrintHTML(printProps,bank,co,sig);
+    const blob=new Blob([html],{type:"text/html"});
+    const url=URL.createObjectURL(blob);
+    const win=window.open(url,"_blank");
+    if(!win){alert("Allow popups for this site");return;}
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
+  };
+
   return (
     <div style={{minHeight:"100vh",background:"#f3f4f6",fontFamily:"Arial,sans-serif",fontSize:"14px",fontWeight:"normal",color:"#111"}}>
 
@@ -365,7 +423,7 @@ export default function App() {
               <button key={k} onClick={()=>setFormTab(k)} style={tabBtn(formTab===k)}>{v}</button>
             ))}
             <button onClick={saveInvoice} disabled={saving} style={{...actionBtn("#16a34a"),opacity:saving?0.6:1}}>{saving?"Saving...":"Save"}</button>
-            <button onClick={handlePrint} style={actionBtn("#f97316")}>Print/PDF</button>
+            <button onClick={handlePrintCurrent} style={actionBtn("#f97316")}>Print/PDF</button>
           </>}
         </div>
       </div>
@@ -614,7 +672,76 @@ export default function App() {
 
       {/* SETTINGS */}
       {appTab==="settings"&&(
-        <div style={{maxWidth:"720px",margin:"0 auto",padding:"16px",display:"flex",flexDirection:"column",gap:"14px"}}>
+        <div style={{maxWidth:"720px",margin:"0 auto",padding:"16px",display:"flex",flexDirection:"column",gap:"14px",paddingBottom:"40px"}}>
+
+          {/* COMPANY HEADER */}
+          <div style={card}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
+              <span style={cardTitle}>Company / Header Details</span>
+              <button onClick={()=>{setEditCo(!editCo);setCoDraft({...co});}} style={{fontSize:"12px",padding:"4px 12px",borderRadius:"6px",border:"1px solid #d1d5db",background:"#fff",color:"#374151",cursor:"pointer",fontWeight:600}}>
+                {editCo?"Cancel":"Edit"}
+              </button>
+            </div>
+            {!editCo?(
+              <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                {[["Company Name",co.name],["Tagline",co.tagline],["Address",co.address],["GSTIN",co.gstin],["PAN",co.pan],["Phone",co.phone],["Email",co.email],["Website",co.website]].map(([k,v])=>(
+                  <div key={k} style={{display:"flex",gap:"12px",fontSize:"13px"}}>
+                    <span style={{color:"#9ca3af",width:"120px",flexShrink:0,fontWeight:"normal"}}>{k}</span>
+                    <span style={{fontWeight:k==="Company Name"?700:400,color:"#1f2937"}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+                {[["name","Company Name"],["tagline","Tagline"],["address","Address"],["gstin","GSTIN"],["pan","PAN"],["phone","Phone"],["email","Email"],["website","Website"]].map(([k,label])=>(
+                  <div key={k}>
+                    <div style={lblSt}>{label}</div>
+                    <input style={inpSt} value={coDraft[k]||""} onChange={e=>setCoDraft(c=>({...c,[k]:e.target.value}))}/>
+                  </div>
+                ))}
+                <button onClick={()=>{
+                  setCo(coDraft);
+                  localStorage.setItem(CO_KEY,JSON.stringify(coDraft));
+                  setEditCo(false); notify("Company details saved ✓");
+                }} style={{...actionBtn("#16a34a"),padding:"8px 20px",fontSize:"13px",borderRadius:"6px",alignSelf:"flex-start"}}>
+                  Save Company Details
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* SIGNATURE */}
+          <div style={card}>
+            <span style={cardTitle}>Signature & Stamp</span>
+            <p style={{fontSize:"12px",color:"#6b7280",marginBottom:"12px",fontWeight:"normal"}}>Upload your signature/stamp PNG. It will appear on every printed invoice automatically.</p>
+            <div style={{display:"flex",gap:"16px",alignItems:"flex-start",flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:"200px"}}>
+                <div style={lblSt}>Upload Signature / Stamp (PNG/JPG)</div>
+                <input type="file" accept="image/*" style={{...inpSt,padding:"4px"}}
+                  onChange={e=>{
+                    const file=e.target.files[0]; if(!file)return;
+                    const reader=new FileReader();
+                    reader.onload=ev=>{
+                      const b64=ev.target.result;
+                      setSig(b64);
+                      localStorage.setItem(SIG_KEY,b64);
+                      notify("Signature saved ✓");
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+                {sig&&<button onClick={()=>{setSig("");localStorage.removeItem(SIG_KEY);notify("Signature removed");}} style={{marginTop:"8px",fontSize:"11px",color:"#f87171",border:"none",background:"none",cursor:"pointer",fontWeight:600}}>✕ Remove signature</button>}
+              </div>
+              <div style={{width:"160px",height:"80px",border:"1px dashed #d1d5db",borderRadius:"6px",display:"flex",alignItems:"center",justifyContent:"center",background:"#f9fafb",flexShrink:0}}>
+                {sig
+                  ?<img src={sig} style={{maxWidth:"150px",maxHeight:"70px",objectFit:"contain"}} alt="signature"/>
+                  :<span style={{fontSize:"11px",color:"#d1d5db"}}>No signature</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          {/* BANK */}
           <div style={card}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
               <span style={cardTitle}>Bank & Payment Details</span>
@@ -649,6 +776,7 @@ export default function App() {
               </div>
             )}
           </div>
+
         </div>
       )}
     </div>
