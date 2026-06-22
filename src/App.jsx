@@ -51,6 +51,47 @@ function Select({label, value, onChange, children}) {
   );
 }
 
+// ─── PASSWORD PROTECTION ──────────────────────────────────────────────────────
+const APP_PASSWORD = "Ganesh@1289";  // ← Change this to your password
+const AUTH_KEY = "bs_auth_v1";
+const isAuthed = () => { try { return localStorage.getItem(AUTH_KEY) === APP_PASSWORD; } catch { return false; } };
+
+function LoginScreen({ onLogin }) {
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState(false);
+  const check = () => {
+    if (pw === APP_PASSWORD) { localStorage.setItem(AUTH_KEY, APP_PASSWORD); onLogin(); }
+    else { setErr(true); setTimeout(() => setErr(false), 2000); setPw(""); }
+  };
+  return (
+    <div style={{minHeight:"100vh",background:"#111827",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Arial,sans-serif"}}>
+      <div style={{background:"#1f2937",borderRadius:"12px",padding:"40px 36px",width:"320px",boxShadow:"0 8px 32px rgba(0,0,0,0.5)"}}>
+        <div style={{textAlign:"center",marginBottom:"28px"}}>
+          <div style={{fontSize:"22px",fontWeight:900,color:"#f97316",letterSpacing:"3px",marginBottom:"6px"}}>BRAG SYSTEMS</div>
+          <div style={{fontSize:"12px",color:"#6b7280",fontWeight:"normal"}}>Invoice Generator</div>
+        </div>
+        <div style={{marginBottom:"12px"}}>
+          <div style={{fontSize:"11px",color:"#9ca3af",marginBottom:"6px",fontWeight:"normal"}}>Password</div>
+          <input
+            type="password"
+            value={pw}
+            onChange={e=>setPw(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&check()}
+            placeholder="Enter password"
+            style={{width:"100%",padding:"10px 12px",borderRadius:"6px",border:`1px solid ${err?"#f87171":"#374151"}`,background:"#111827",color:"#fff",fontSize:"14px",outline:"none",boxSizing:"border-box",fontFamily:"Arial,sans-serif"}}
+            autoFocus
+          />
+          {err&&<div style={{color:"#f87171",fontSize:"12px",marginTop:"6px",fontWeight:"normal"}}>Incorrect password</div>}
+        </div>
+        <button onClick={check}
+          style={{width:"100%",padding:"10px",borderRadius:"6px",background:"#f97316",color:"#fff",border:"none",fontSize:"14px",fontWeight:700,cursor:"pointer",marginTop:"4px"}}>
+          Login
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const SUPA_URL = "https://asfdgwvgvgnngjqmimgi.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzZmRnd3ZndmdubmdqcW1pbWdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNDM3NzIsImV4cCI6MjA5NzYxOTc3Mn0.Kwjw30sZSM6PAJdFjg65gWYfj96DAtk-NA1Gkzjym7A";
 
@@ -398,6 +439,9 @@ export default function App() {
     setTimeout(()=>URL.revokeObjectURL(url),10000);
   };
 
+  const [authed, setAuthed] = useState(isAuthed());
+  if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
+
   return (
     <div style={{minHeight:"100vh",background:"#f3f4f6",fontFamily:"Arial,sans-serif",fontSize:"14px",fontWeight:"normal",color:"#111"}}>
 
@@ -419,6 +463,7 @@ export default function App() {
             <button onClick={saveInvoice} disabled={saving} style={{...actionBtn("#16a34a"),opacity:saving?0.6:1}}>{saving?"Saving...":"Save"}</button>
             <button onClick={handlePrintCurrent} style={actionBtn("#f97316")}>Print/PDF</button>
           </>}
+          <button onClick={()=>{localStorage.removeItem(AUTH_KEY);setAuthed(false);}} style={{fontSize:"11px",padding:"4px 10px",borderRadius:"6px",background:"#374151",color:"#9ca3af",border:"none",cursor:"pointer",marginLeft:"4px"}} title="Logout">⎋</button>
         </div>
       </div>
 
