@@ -1,4 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+
+// ─── SHARED STYLES (module level) ─────────────────────────────────────────────
+const inpSt = {width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"7px 10px",fontSize:"13px",fontWeight:"normal",color:"#1f2937",background:"#fff",outline:"none",boxSizing:"border-box",fontFamily:"Arial,sans-serif"};
+const lblSt = {display:"block",fontSize:"11px",fontWeight:500,color:"#6b7280",marginBottom:"4px"};
+
+// ─── INPUT COMPONENTS outside App to prevent remount on every keystroke ────────
+function Input({label,value,onChange,placeholder,type}){
+  return(<div><div style={lblSt}>{label}</div><input style={inpSt} type={type||"text"} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||""}/></div>);
+}
+function Textarea({label,value,onChange,placeholder,rows}){
+  return(<div><div style={lblSt}>{label}</div><textarea style={{...inpSt,resize:"vertical"}} rows={rows||3} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||""}/></div>);
+}
+function Select({label,value,onChange,children}){
+  return(<div><div style={lblSt}>{label}</div><select style={inpSt} value={value} onChange={e=>onChange(e.target.value)}>{children}</select></div>);
+}
 
 const SUPA_URL = "https://asfdgwvgvgnngjqmimgi.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzZmRnd3ZndmdubmdqcW1pbWdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNDM3NzIsImV4cCI6MjA5NzYxOTc3Mn0.Kwjw30sZSM6PAJdFjg65gWYfj96DAtk-NA1Gkzjym7A";
@@ -177,38 +192,10 @@ function buildPrintHTML(p, bank) {
 }
 
 // ─── UNCONTROLLED TEXT INPUT (fixes typing lag) ────────────────────────────────
-function TextField({ label, value, onChange, placeholder, multiline, rows }) {
-  const st = {
-    width:"100%", border:"1px solid #d1d5db", borderRadius:"6px",
-    padding:"7px 10px", fontSize:"13px", fontWeight:"normal",
-    color:"#1f2937", background:"#fff", outline:"none",
-    boxSizing:"border-box", fontFamily:"Arial,sans-serif", resize:"vertical",
-  };
-  return (
-    <div>
-      <div style={{display:"block",fontSize:"11px",fontWeight:500,color:"#6b7280",marginBottom:"4px"}}>{label}</div>
-      {multiline
-        ? <textarea style={st} rows={rows||3} defaultValue={value} onBlur={e=>onChange(e.target.value)} placeholder={placeholder}/>
-        : <input style={st} defaultValue={value} key={value===undefined?undefined:undefined} onBlur={e=>onChange(e.target.value)} onChange={e=>onChange(e.target.value)} placeholder={placeholder}/>
-      }
     </div>
   );
 }
 
-function SelectField({ label, value, onChange, options }) {
-  const st = {
-    width:"100%", border:"1px solid #d1d5db", borderRadius:"6px",
-    padding:"7px 10px", fontSize:"13px", fontWeight:"normal",
-    color:"#1f2937", background:"#fff", outline:"none",
-    boxSizing:"border-box", fontFamily:"Arial,sans-serif",
-  };
-  return (
-    <div>
-      <div style={{display:"block",fontSize:"11px",fontWeight:500,color:"#6b7280",marginBottom:"4px"}}>{label}</div>
-      <select style={st} value={value} onChange={e=>onChange(e.target.value)}>{options}</select>
-    </div>
-  );
-}
 
 // ─── MAIN APP ──────────────────────────────────────────────────────────────────
 export default function App() {
@@ -354,32 +341,10 @@ export default function App() {
   const card = {background:"#fff",borderRadius:"8px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",padding:"16px"};
   const cardTitle = {fontSize:"13px",fontWeight:700,color:"#374151",marginBottom:"12px",display:"block"};
   const grid2 = {display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"};
-  const inpSt = {width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"7px 10px",fontSize:"13px",fontWeight:"normal",color:"#1f2937",background:"#fff",outline:"none",boxSizing:"border-box",fontFamily:"Arial,sans-serif"};
-  const lblSt = {display:"block",fontSize:"11px",fontWeight:500,color:"#6b7280",marginBottom:"4px"};
   const tabBtn = (a) => ({fontSize:"12px",padding:"5px 12px",borderRadius:"6px",fontWeight:600,border:"none",cursor:"pointer",background:a?"#f97316":"#374151",color:a?"#fff":"#d1d5db"});
   const actionBtn = (color,sm) => ({fontSize:sm?"11px":"12px",padding:sm?"3px 10px":"5px 12px",borderRadius:"6px",fontWeight:700,border:"none",cursor:"pointer",background:color,color:"#fff"});
 
   const printProps = {docType,invoiceNo,invoiceDate,dueDate,poRef,vehicleNo,lrNo,modeOfTransport,incoterms,placeOfSupply,clientName,clientContact,clientAddress,clientGstin,clientPhone,clientEmail,items,taxType,taxRate,taxable,tax,grand,notes};
-
-  // Simple controlled input that doesn't lag
-  const Input = ({label,value,onChange,placeholder,type}) => (
-    <div>
-      <div style={lblSt}>{label}</div>
-      <input style={inpSt} type={type||"text"} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||""}/>
-    </div>
-  );
-  const Textarea = ({label,value,onChange,placeholder,rows}) => (
-    <div>
-      <div style={lblSt}>{label}</div>
-      <textarea style={{...inpSt,resize:"vertical"}} rows={rows||3} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||""}/>
-    </div>
-  );
-  const Select = ({label,value,onChange,children}) => (
-    <div>
-      <div style={lblSt}>{label}</div>
-      <select style={inpSt} value={value} onChange={e=>onChange(e.target.value)}>{children}</select>
-    </div>
-  );
 
   return (
     <div style={{minHeight:"100vh",background:"#f3f4f6",fontFamily:"Arial,sans-serif",fontSize:"14px",fontWeight:"normal",color:"#111"}}>
