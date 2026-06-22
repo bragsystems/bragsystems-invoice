@@ -89,7 +89,7 @@ function buildPrintHTML(p, bank) {
   const emptyRows=items.length<5?Array(5-items.length).fill(0).map(()=>`<tr>${Array(7).fill(0).map(()=>`<td style="border:1px solid #aaa;padding:13px 7px">&nbsp;</td>`).join("")}</tr>`).join(""):"";
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>${docType} - ${invoiceNo}</title>
-<style>*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:Arial,sans-serif;font-size:10px;color:#111;background:#fff;font-weight:normal}table{width:100%;border-collapse:collapse}@page{size:A4;margin:10mm 12mm}</style>
+<style>*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:Arial,sans-serif;font-size:10px;color:#111;background:#fff;font-weight:normal}table{width:100%;border-collapse:collapse}@page{size:A4;margin:10mm 12mm}p,div,td,span,li{font-weight:normal}strong,b{font-weight:bold}</style>
 </head><body>
 <table style="margin-bottom:6px"><tr>
   <td style="width:58%;vertical-align:top;padding-right:10px">
@@ -164,7 +164,7 @@ function buildPrintHTML(p, bank) {
 <table style="margin-bottom:7px"><tr>
   <td style="width:60%;border:1px solid #aaa;padding:6px 8px;vertical-align:top">
     <div style="font-size:8px;font-weight:bold;color:#E59215;margin-bottom:3px">TERMS &amp; CONDITIONS</div>
-    <div style="font-size:9px;color:#444;line-height:1.7">${(notes||"").replace(/\n/g,"<br/>")}</div>
+    <div style="font-size:9px;color:#444;line-height:1.7;font-weight:normal">${(notes||"").replace(/\n/g,"<br/>")}</div>
   </td>
   <td style="width:40%;border:1px solid #aaa;border-left:none;padding:6px 8px;text-align:center;vertical-align:top">
     <div style="font-size:8px;font-weight:bold;color:#E59215;margin-bottom:4px">For BRAG SYSTEMS</div>
@@ -485,24 +485,35 @@ export default function App() {
         <div style={{maxWidth:"720px",margin:"0 auto",padding:"16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}}>
             <span style={{fontSize:"16px",fontWeight:700,color:"#374151"}}>Saved Clients</span>
-            <button onClick={fetchClients} style={{fontSize:"12px",color:"#f97316",fontWeight:600,border:"none",background:"none",cursor:"pointer"}}>↺ Refresh</button>
+            <div style={{display:"flex",gap:"8px"}}>
+              <button onClick={()=>{
+                setClientName(""); setClientContact(""); setClientAddress("");
+                setClientGstin(""); setClientPhone(""); setClientEmail(""); setPlaceOfSupply("");
+                setAppTab("invoice"); setFormTab("edit");
+                notify("Fill client details and click Save Client");
+              }} style={{fontSize:"12px",padding:"5px 14px",borderRadius:"6px",background:"#f97316",color:"#fff",border:"none",cursor:"pointer",fontWeight:600}}>+ Add New Client</button>
+              <button onClick={fetchClients} style={{fontSize:"12px",color:"#f97316",fontWeight:600,border:"none",background:"none",cursor:"pointer"}}>↺ Refresh</button>
+            </div>
           </div>
           {clients.length===0
-            ?<div style={{textAlign:"center",color:"#9ca3af",padding:"40px",background:"#fff",borderRadius:"8px"}}>No clients saved yet.</div>
+            ?<div style={{textAlign:"center",color:"#9ca3af",padding:"40px",background:"#fff",borderRadius:"8px"}}>No clients saved yet. Click "+ Add New Client" to add one.</div>
             :<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
               {clients.map(c=>(
-                <div key={c.id} onClick={()=>{loadClient(c);setAppTab("invoice");}} style={{background:"#fff",borderRadius:"8px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"flex-start",cursor:"pointer"}}>
-                  <div>
+                <div key={c.id} style={{background:"#fff",borderRadius:"8px",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div style={{flex:1,cursor:"pointer"}} onClick={()=>{loadClient(c);setAppTab("invoice");}}>
                     <div style={{fontWeight:700,color:"#1f2937",fontSize:"14px"}}>{c.name}</div>
-                    {c.contact_person&&<div style={{fontSize:"12px",color:"#f97316",marginTop:"2px"}}>Attn: {c.contact_person}</div>}
-                    <div style={{fontSize:"12px",color:"#6b7280",marginTop:"2px"}}>{c.address}</div>
-                    <div style={{fontSize:"11px",color:"#9ca3af",marginTop:"4px",display:"flex",gap:"12px"}}>
+                    {c.contact_person&&<div style={{fontSize:"12px",color:"#f97316",marginTop:"2px",fontWeight:500}}>Attn: {c.contact_person}</div>}
+                    <div style={{fontSize:"12px",color:"#6b7280",marginTop:"2px",fontWeight:"normal"}}>{c.address}</div>
+                    <div style={{fontSize:"11px",color:"#9ca3af",marginTop:"4px",display:"flex",gap:"12px",fontWeight:"normal"}}>
                       {c.gstin&&<span>GSTIN: {c.gstin}</span>}
                       {c.phone&&<span>{c.phone}</span>}
                       {c.email&&<span>{c.email}</span>}
                     </div>
                   </div>
-                  <button onClick={e=>deleteClient(c.id,c.name,e)} style={{color:"#f87171",fontSize:"14px",border:"none",background:"none",cursor:"pointer",marginLeft:"16px"}}>✕</button>
+                  <div style={{display:"flex",gap:"8px",marginLeft:"16px",flexShrink:0}}>
+                    <button onClick={()=>{loadClient(c);setAppTab("invoice");}} style={{fontSize:"11px",padding:"3px 10px",borderRadius:"4px",background:"#f3f4f6",color:"#374151",border:"none",cursor:"pointer",fontWeight:600}}>Load</button>
+                    <button onClick={e=>deleteClient(c.id,c.name,e)} style={{color:"#f87171",fontSize:"14px",border:"none",background:"none",cursor:"pointer"}}>✕</button>
+                  </div>
                 </div>
               ))}
             </div>
